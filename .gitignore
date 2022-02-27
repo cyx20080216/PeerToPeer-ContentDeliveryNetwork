@@ -1,0 +1,9 @@
+# Ignore hidden directories, such as ".vscode"
+/.*
+!/.gitignore
+# Ignore build result
+/DataAndRegistrationCenter/DataAndRegistrationCenter
+/Node/Node
+/Router/Router
+# Ignore go.sum
+**/go.sum
