@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
@@ -19,6 +20,7 @@ var Rander = rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 func main() {
 	flag.Parse()
+	os.Mkdir("file/", os.ModePerm)
 	initServerURL()
 	initFileServer()
 	initHashServer()
@@ -75,4 +77,16 @@ func register() {
 		log.Printf("main: The status code %d is wrong. The content is %s.", res.StatusCode, string(content))
 	}
 	log.Println("main: Finish register")
+}
+
+func IsFileOrDir(path string) int {
+	statu, err := os.Stat(path)
+	if err != nil {
+		return -1
+	}
+	if statu.IsDir() {
+		return 1
+	} else {
+		return 0
+	}
 }

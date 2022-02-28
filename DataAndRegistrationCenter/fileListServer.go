@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
@@ -22,7 +23,7 @@ func initFileListServer() {
 		log.Fatalf("fileListServer: Create the watcher failed: %s.\n", err)
 		return
 	}
-	watcher.Add("file")
+	watcher.Add("file/")
 	go processFileListAndFileSystemNotify(watcher)
 }
 
@@ -56,7 +57,8 @@ func getFileList() {
 			return err
 		}
 		if !fileInfo.IsDir() {
-			fileSet[path[5:]] = byte(0)
+			unixPath := strings.Replace(path, "\\", "/", -1)
+			fileSet[unixPath[5:]] = byte(0)
 		}
 		return nil
 	})
@@ -68,16 +70,21 @@ func processFileListAndFileSystemNotify(watcher *fsnotify.Watcher) {
 		select {
 		case event := <-watcher.Events:
 			{
+				unixPath := strings.Replace(event.Name, "\\", "/", -1)
 				if (event.Op & fsnotify.Create) != 0 {
-					fileSetLock.Lock()
-					fileSet[event.Name[5:]] = byte(0)
-					fileSetLock.Unlock()
-					log.Printf("fileListServer: Add the set of %s. Because it created.\n", event.Name)
+					if IsFileOrDir(unixPath) == 0 {
+						fileSetLock.Lock()
+						fileSet[unixPath[5:]] = byte(0)
+						fileSetLock.Unlock()
+						log.Printf("fileListServer: Add %s in the set. Because it created.\n", unixPath)
+					} else if IsFileOrDir(unixPath) == 1 {
+						watcher.Add(unixPath)
+					}
 				} else if (event.Op&fsnotify.Remove) != 0 || (event.Op&fsnotify.Rename) != 0 {
 					fileSetLock.Lock()
-					delete(fileSet, event.Name[5:])
+					delete(fileSet, unixPath[5:])
 					fileSetLock.Unlock()
-					log.Printf("fileListServer: Remove the set of %s. Because it removed.\n", event.Name)
+					log.Printf("fileListServer: Remove %s in the set. Because it removed.\n", unixPath)
 				}
 			}
 		case err := <-watcher.Errors:
