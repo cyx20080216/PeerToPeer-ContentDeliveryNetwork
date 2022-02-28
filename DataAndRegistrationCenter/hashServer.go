@@ -51,6 +51,7 @@ func responseHash(responseWriter http.ResponseWriter, request *http.Request) {
 	_, err = io.Copy(sha1Hasher, fileHandle)
 	if err != nil {
 		log.Printf("hashServer: Read the file %s failed: %s. Response statu set as 404.\n", "file"+request.URL.Path[5:], err)
+		fileHandle.Close()
 		http.NotFound(responseWriter, request)
 		return
 	}
