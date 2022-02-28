@@ -7,3 +7,5 @@
 **/Router*
 # Ignore go.sum
 **/go.sum
+# Ignore test file
+**/file/*
