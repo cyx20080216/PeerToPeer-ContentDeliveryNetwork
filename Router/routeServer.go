@@ -14,34 +14,34 @@ func InitRouteServer() {
 }
 
 func responseFile(responseWriter http.ResponseWriter, request *http.Request) {
-	log.Printf("hashServer: Request from %s. Method is %s. Path is %s.\n", request.RemoteAddr, request.Method, request.URL.Path)
+	log.Printf("routeServer: Request from %s. Method is %s. Path is %s.\n", request.RemoteAddr, request.Method, request.URL.Path)
 	if request.Method != http.MethodGet && request.Method != http.MethodHead {
-		log.Println("hashServer: Wrong method! Response statu set as 404.")
+		log.Println("routeServer: Wrong method! Response statu set as 404.")
 		http.NotFound(responseWriter, request)
 		return
 	}
 	path := request.URL.Path
 	if len(path) < 2 {
-		log.Println("hashServer: Wrong path! Response statu set as 404.")
+		log.Println("routeServer: Wrong path! Response statu set as 404.")
 		http.NotFound(responseWriter, request)
 		return
 	}
 	path = path[1:]
 	node, err := chooseNode(request.URL.Path)
 	if err != nil {
-		log.Printf("hashServer: Choose node failed: %s. Response statu set as 404.\n", err)
+		log.Printf("routeServer: Choose node failed: %s. Response statu set as 404.\n", err)
 		http.NotFound(responseWriter, request)
 		return
 	}
 	fileURL, err := url.Parse(node)
 	if err != nil {
-		log.Printf("hashServer: Parse node url failed: %s. Response statu set as 404.\n", err)
+		log.Printf("routeServer: Parse node url failed: %s. Response statu set as 404.\n", err)
 		http.NotFound(responseWriter, request)
 		return
 	}
 	fileURL.Path += "file/" + path
 	http.Redirect(responseWriter, request, fileURL.String(), http.StatusFound)
-	log.Printf("hashServer: Redirect to %s finished.", fileURL.String())
+	log.Printf("routeServer: Redirect to %s finished.", fileURL.String())
 }
 
 func chooseNode(path string) (string, error) {
