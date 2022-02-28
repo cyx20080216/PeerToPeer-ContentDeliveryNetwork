@@ -82,6 +82,7 @@ func synchronizeFile(path string, sha1HashValue string) error {
 			if err != nil {
 				return err
 			}
+			file.Close()
 			if fileSHA1HashValue == sha1HashValue {
 				return nil
 			}

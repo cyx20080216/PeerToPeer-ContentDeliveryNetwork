@@ -33,12 +33,6 @@ func responseHash(responseWriter http.ResponseWriter, request *http.Request) {
 		http.NotFound(responseWriter, request)
 		return
 	}
-	fileHandle, err := os.OpenFile("file"+request.URL.Path[5:], os.O_RDONLY, 0)
-	if err != nil {
-		log.Printf("hashServer: Open the file %s failed: %s. Response statu set as 404.\n", "file"+request.URL.Path[5:], err)
-		http.NotFound(responseWriter, request)
-		return
-	}
 	sha1HashValueCacheLock.RLock()
 	sha1HashValue, isPresent := sha1HashValueCache["file"+request.URL.Path[5:]]
 	sha1HashValueCacheLock.RUnlock()
@@ -48,12 +42,20 @@ func responseHash(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 	sha1Hasher := sha1.New()
-	_, err = io.Copy(sha1Hasher, fileHandle)
+	fileHandle, err := os.OpenFile("file"+request.URL.Path[5:], os.O_RDONLY, 0)
 	if err != nil {
-		log.Printf("hashServer: Read the file %s failed: %s. Response statu set as 404.\n", "file"+request.URL.Path[5:], err)
+		log.Printf("hashServer: Open the file %s failed: %s. Response statu set as 404.\n", "file"+request.URL.Path[5:], err)
 		http.NotFound(responseWriter, request)
 		return
 	}
+	_, err = io.Copy(sha1Hasher, fileHandle)
+	if err != nil {
+		log.Printf("hashServer: Read the file %s failed: %s. Response statu set as 404.\n", "file"+request.URL.Path[5:], err)
+		fileHandle.Close()
+		http.NotFound(responseWriter, request)
+		return
+	}
+	fileHandle.Close()
 	sha1HashValue = fmt.Sprintf("%x", sha1Hasher.Sum(nil))
 	sha1HashValueCacheLock.Lock()
 	sha1HashValueCache["file"+request.URL.Path[5:]] = sha1HashValue
