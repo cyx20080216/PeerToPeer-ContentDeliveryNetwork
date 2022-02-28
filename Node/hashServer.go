@@ -54,6 +54,7 @@ func responseHash(responseWriter http.ResponseWriter, request *http.Request) {
 		http.NotFound(responseWriter, request)
 		return
 	}
+	fileHandle.Close()
 	sha1HashValue = fmt.Sprintf("%x", sha1Hasher.Sum(nil))
 	sha1HashValueCacheLock.Lock()
 	sha1HashValueCache["file"+request.URL.Path[5:]] = sha1HashValue
