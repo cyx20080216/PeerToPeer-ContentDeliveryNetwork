@@ -24,6 +24,10 @@ func initHashServer() {
 		return
 	}
 	watcher.Add("file")
+	_, dirList := GetFileListAndDirList("file/")
+	for _, each := range dirList {
+		watcher.Add("file/" + each)
+	}
 	go processSHA1HashValueCacheAndFileSystemNotify(watcher)
 }
 
@@ -78,7 +82,14 @@ func processSHA1HashValueCacheAndFileSystemNotify(watcher *fsnotify.Watcher) {
 					log.Printf("hashServer: Remove the cache of %s. Because it wrote or removed.\n", unixPath)
 				} else if event.Op&fsnotify.Create != 0 {
 					if IsFileOrDir(unixPath) == 1 {
+						if unixPath[len(unixPath)-1] != '/' {
+							unixPath += "/"
+						}
 						watcher.Add(unixPath)
+						_, dirList := GetFileListAndDirList(unixPath)
+						for _, each := range dirList {
+							watcher.Add(unixPath + each)
+						}
 					}
 				}
 			}
