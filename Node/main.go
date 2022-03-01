@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -77,6 +79,26 @@ func register() {
 		log.Printf("main: The status code %d is wrong. The content is %s.", res.StatusCode, string(content))
 	}
 	log.Println("main: Finish register")
+}
+
+func GetFileListAndDirList(dir string) (fileList []string, dirList []string) {
+	if dir[len(dir)-1] != '/' {
+		dir += "/"
+	}
+	filepath.Walk(dir, func(path string, fileInfo os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if fileInfo.IsDir() {
+			unixPath := strings.Replace(path, "\\", "/", -1)
+			dirList = append(dirList, unixPath[len(dir):])
+		} else {
+			unixPath := strings.Replace(path, "\\", "/", -1)
+			fileList = append(fileList, unixPath[len(dir):])
+		}
+		return nil
+	})
+	return
 }
 
 func IsFileOrDir(path string) int {

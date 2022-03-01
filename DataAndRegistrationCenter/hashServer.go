@@ -24,6 +24,10 @@ func initHashServer() {
 		return
 	}
 	watcher.Add("file/")
+	_, dirList := GetFileListAndDirList("file/")
+	for _, each := range dirList {
+		watcher.Add("file/" + each)
+	}
 	go processSHA1HashValueCacheAndFileSystemNotify(watcher)
 }
 
@@ -70,16 +74,44 @@ func processSHA1HashValueCacheAndFileSystemNotify(watcher *fsnotify.Watcher) {
 		select {
 		case event := <-watcher.Events:
 			{
+				// log.Println(event.Op, event.Name)
 				unixPath := strings.Replace(event.Name, "\\", "/", -1)
 				if (event.Op&fsnotify.Write) != 0 || (event.Op&fsnotify.Remove) != 0 || (event.Op&fsnotify.Rename) != 0 {
 					sha1HashValueCacheLock.Lock()
 					delete(sha1HashValueCache, unixPath[5:])
 					sha1HashValueCacheLock.Unlock()
 					log.Printf("hashServer: Remove the cache of %s. Because it wrote or removed.\n", unixPath)
-				} else if event.Op&fsnotify.Create != 0 {
+				}
+				if event.Op&fsnotify.Create != 0 {
 					if IsFileOrDir(unixPath) == 1 {
+						if unixPath[len(unixPath)-1] != '/' {
+							unixPath += "/"
+						}
 						watcher.Add(unixPath)
+						_, dirList := GetFileListAndDirList(unixPath)
+						for _, each := range dirList {
+							watcher.Add(unixPath + each)
+						}
 					}
+				}
+				if (event.Op&fsnotify.Remove) != 0 || (event.Op&fsnotify.Rename) != 0 {
+					if unixPath[len(unixPath)-1] != '/' {
+						unixPath += "/"
+					}
+					willRemove := make([]string, 0)
+					sha1HashValueCacheLock.RLock()
+					for each, _ := range sha1HashValueCache {
+						if len(each) >= len(unixPath[5:]) && each[:len(unixPath[5:])] == unixPath[5:] {
+							willRemove = append(willRemove, each)
+						}
+					}
+					sha1HashValueCacheLock.RUnlock()
+					sha1HashValueCacheLock.Lock()
+					for _, each := range willRemove {
+						delete(sha1HashValueCache, each)
+					}
+					sha1HashValueCacheLock.Unlock()
+					watcher.Remove(unixPath)
 				}
 			}
 		case err := <-watcher.Errors:
