@@ -59,52 +59,54 @@ func processFileListAndFileSystemNotify(watcher *fsnotify.Watcher) {
 		select {
 		case event := <-watcher.Events:
 			{
-				log.Println(event.Op, event.Name)
+				// log.Println(event.Op, event.Name, len(event.Name))
 				unixPath := strings.Replace(event.Name, "\\", "/", -1)
-				if (event.Op & fsnotify.Create) != 0 {
-					if IsFileOrDir(unixPath) == 0 {
+				if len(unixPath) >= 5 && unixPath[:5] == "file/" {
+					if (event.Op & fsnotify.Create) != 0 {
+						if IsFileOrDir(unixPath) == 0 {
+							fileSetLock.Lock()
+							fileSet[unixPath[5:]] = byte(0)
+							fileSetLock.Unlock()
+							log.Printf("fileListServer: Add %s in the set. Because it created.\n", unixPath)
+						} else if IsFileOrDir(unixPath) == 1 {
+							if unixPath[len(unixPath)-1] != '/' {
+								unixPath += "/"
+							}
+							watcher.Add(unixPath)
+							fileList, dirList := GetFileListAndDirList(unixPath)
+							fileSetLock.Lock()
+							for _, each := range fileList {
+								fileSet[each[5:]] = byte(0)
+							}
+							fileSetLock.Unlock()
+							for _, each := range dirList {
+								watcher.Add(unixPath + each)
+							}
+						}
+					}
+					if (event.Op&fsnotify.Remove) != 0 || (event.Op&fsnotify.Rename) != 0 {
 						fileSetLock.Lock()
-						fileSet[unixPath[5:]] = byte(0)
+						delete(fileSet, unixPath[5:])
 						fileSetLock.Unlock()
-						log.Printf("fileListServer: Add %s in the set. Because it created.\n", unixPath)
-					} else if IsFileOrDir(unixPath) == 1 {
 						if unixPath[len(unixPath)-1] != '/' {
 							unixPath += "/"
 						}
-						watcher.Add(unixPath)
-						fileList, dirList := GetFileListAndDirList(unixPath)
+						willRemove := make([]string, 0)
+						fileSetLock.RLock()
+						for each, _ := range fileSet {
+							if len(each) >= len(unixPath[5:]) && each[:len(unixPath[5:])] == unixPath[5:] {
+								willRemove = append(willRemove, each)
+							}
+						}
+						fileSetLock.RUnlock()
 						fileSetLock.Lock()
-						for _, each := range fileList {
-							fileSet[each[5:]] = byte(0)
+						for _, each := range willRemove {
+							delete(fileSet, each)
 						}
 						fileSetLock.Unlock()
-						for _, each := range dirList {
-							watcher.Add(unixPath + each)
-						}
+						watcher.Remove(unixPath)
+						log.Printf("fileListServer: Remove %s in the set. Because it removed.\n", unixPath)
 					}
-				}
-				if (event.Op&fsnotify.Remove) != 0 || (event.Op&fsnotify.Rename) != 0 {
-					fileSetLock.Lock()
-					delete(fileSet, unixPath[5:])
-					fileSetLock.Unlock()
-					if unixPath[len(unixPath)-1] != '/' {
-						unixPath += "/"
-					}
-					willRemove := make([]string, 0)
-					fileSetLock.RLock()
-					for each, _ := range fileSet {
-						if len(each) >= len(unixPath[5:]) && each[:len(unixPath[5:])] == unixPath[5:] {
-							willRemove = append(willRemove, each)
-						}
-					}
-					fileSetLock.RUnlock()
-					fileSetLock.Lock()
-					for _, each := range willRemove {
-						delete(fileSet, each)
-					}
-					fileSetLock.Unlock()
-					watcher.Remove(unixPath)
-					log.Printf("fileListServer: Remove %s in the set. Because it removed.\n", unixPath)
 				}
 			}
 		case err := <-watcher.Errors:
