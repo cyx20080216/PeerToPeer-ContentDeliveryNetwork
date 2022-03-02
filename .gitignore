@@ -5,6 +5,9 @@
 **/DataAndRegistrationCenter*
 **/Node*
 **/Router*
+!/DataAndRegistrationCenter/
+!/Node/
+!/Router/
 # Ignore go.sum
 **/go.sum
 # Ignore test file
