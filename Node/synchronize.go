@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 )
 
 func Synchronize() {
@@ -17,8 +18,32 @@ func Synchronize() {
 		log.Printf("Synchronize: Failed to get file list: %s.\n", err)
 		return
 	}
+	removeTrash(fileList)
 	for _, file := range fileList {
 		go checkAndSynchronize(file)
+	}
+}
+
+func removeTrash(fileList []string) {
+	allFileNow, allDirNow := GetFileListAndDirList("file/")
+	fileSet := make(map[string]byte)
+	for _, each := range fileList {
+		fileSet[each] = byte(0)
+	}
+	for _, each := range allFileNow {
+		_, isPresent := fileSet[each]
+		if !isPresent {
+			os.Remove("file/" + each)
+		}
+	}
+	for _, each := range allDirNow {
+		if each == "" {
+			continue
+		}
+		fileList, _ := GetFileListAndDirList("file/" + each)
+		if len(fileList) <= 0 {
+			os.RemoveAll("file/" + each)
+		}
 	}
 }
 
@@ -29,7 +54,7 @@ func checkAndSynchronize(path string) {
 		return
 	}
 	var file *os.File
-	file, err = os.OpenFile("file/" + path, os.O_RDONLY, 0)
+	file, err = os.OpenFile("file/"+path, os.O_RDONLY, 0)
 	if err == nil {
 		var localValue string
 		localValue, err = calcSHA1HashValue(file)
@@ -61,7 +86,8 @@ func synchronizeFile(path string, sha1HashValue string) error {
 	for len(nodeList) > 0 {
 		index := Rander.Intn(len(nodeList))
 		if checkNode(nodeList[index], path, sha1HashValue) {
-			file, err := os.OpenFile("file/" + path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0666)
+			os.MkdirAll(filepath.Dir("file/"+path), os.ModePerm)
+			file, err := os.OpenFile("file/"+path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 			if err != nil {
 				return err
 			}
@@ -73,7 +99,7 @@ func synchronizeFile(path string, sha1HashValue string) error {
 				continue
 			}
 			file.Close()
-			file, err = os.OpenFile("file/" + path, os.O_RDONLY, 0)
+			file, err = os.OpenFile("file/"+path, os.O_RDONLY, 0)
 			if err != nil {
 				return err
 			}
