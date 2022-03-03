@@ -2,6 +2,10 @@
 It is a simple CDN.
 
 It requires [fsnotify](https://github.com/fsnotify/fsnotify)
+# Use build script
+```bash
+sh build.sh
+```
 # Build center
 ```bash
 cd DataAndRegistrationCenter/
