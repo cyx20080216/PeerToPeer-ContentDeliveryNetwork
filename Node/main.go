@@ -29,7 +29,10 @@ func main() {
 	initHeartbeat()
 	go func() {
 		time.Sleep(1000000000)
-		register()
+		for {
+			register()
+			time.Sleep(time.Duration((*synchronizeTime) * 1000000000))
+		}
 	}()
 	go func() {
 		time.Sleep(1000000000)
@@ -69,14 +72,17 @@ func register() {
 	form["url"] = append(form["url"], *nodeRawURL)
 	res, err := http.PostForm(serverRegisterRawURL, form)
 	if err != nil {
-		log.Fatalf("main: Register failed: %s.\n", err)
+		log.Printf("main: Register failed: %s.\n", err)
+		return
 	}
 	if res.StatusCode != 200 {
 		content, err := io.ReadAll(res.Body)
 		if err != nil {
 			log.Printf("main: Read the content failed: %s. The status code %d is wrong.", err, res.StatusCode)
+			return
 		}
 		log.Printf("main: The status code %d is wrong. The content is %s.", res.StatusCode, string(content))
+		return
 	}
 	log.Println("main: Finish register")
 }

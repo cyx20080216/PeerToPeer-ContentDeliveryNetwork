@@ -59,6 +59,15 @@ func responseRegister(responseWriter http.ResponseWriter, request *http.Request)
 		nodeURL.Path += "/"
 	}
 	rawURL := nodeURL.String()
+	nodeSetLock.RLock()
+	_, isPresent := nodeSet[rawURL]
+	nodeSetLock.RUnlock()
+	if isPresent {
+		log.Println("registrationServer: Is present! Response statu set as 404 and send error.")
+		responseWriter.WriteHeader(404)
+		responseWriter.Write([]byte(`{"statu":"error","describe":"Is present."}`))
+		return
+	}
 	nodeSetLock.Lock()
 	nodeSet[rawURL] = byte(0)
 	nodeSetLock.Unlock()
