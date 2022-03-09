@@ -1,5 +1,5 @@
-# Simple-ContentDeliveryNetwork
-It is a simple CDN.
+# PeerToPeer-ContentDeliveryNetwork
+It is a P2P CDN.
 
 It is open sourced under the [GPLv3](https://github.com/cyx20080216/Simple-ContentDeliveryNetwork/blob/master/LICENSE) license 
 
